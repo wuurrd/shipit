@@ -2,7 +2,7 @@
 shipit.events
 ~~~~~~~~~~~~~
 
-Poor mans pub-sub mechanism.
+Poor man's pub-sub mechanism.
 """
 
 EVENTS = [

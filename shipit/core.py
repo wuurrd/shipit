@@ -47,15 +47,6 @@ def format_comment(comment):
                                                           body=body,)
 
 
-# FIXME: don't use a workaround when `__eq__` is implemented
-def item_index(issues, item):
-    for index, issue in enumerate(issues):
-        if issue.id == item.id:
-            return index
-    else:
-        return -1
-
-
 def step(first, last):
     """Call ``first`` asynchronously, and then add ``last`` as a callback."""
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
@@ -100,24 +91,18 @@ class IssuesAndPullRequests(MonitoredList):
         self._issues.extend([i for i in self.repo.iter_issues(state='closed')])
 
     def _append_open_issues(self, future=None):
-        # FIXME: __eq__ is coming
         for i in filter(is_open, self._issues):
-            index = item_index(self, i)
-            if index == -1:
+            if i not in self:
                 self.append(i)
 
     def _append_closed_issues(self, future=None):
-        # FIXME: __eq__ is coming
         for i in filter(is_closed, self._issues):
-            index = item_index(self, i)
-            if index == -1:
+            if i not in self:
                 self.append(i)
 
     def _append_pull_requests(self, future=None):
-        # FIXME: __eq__ is coming
         for pr in self._prs:
-            index = item_index(self, pr)
-            if index == -1:
+            if pr not in self:
                 self.append(pr)
 
 
