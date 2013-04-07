@@ -61,33 +61,44 @@ def discard_args(func):
 
 
 class IssuesAndPullRequests(MonitoredList):
+    OPEN_ISSUES = 0
+    CLOSED_ISSUES = 1
+    PULL_REQUESTS = 2
+
     def __init__(self, repo):
         self._issues = []
         self._prs = []
         self.repo = repo
+        self.showing = self.OPEN_ISSUES
 
     def show_open_issues(self, **kwargs):
+        self.showing = self.OPEN_ISSUES
         del self[:]
         self._append_open_issues()
         step(self.fetch_open_issues, self._append_open_issues)
 
     def show_closed_issues(self, **kwargs):
+        self.showing = self.CLOSED_ISSUES
         del self[:]
         self._append_closed_issues()
         step(self.fetch_closed_issues, self._append_closed_issues)
 
     def show_pull_requests(self, **kwargs):
+        self.showing = self.PULL_REQUESTS
         del self[:]
         self._append_pull_requests()
         step(self.fetch_pull_requests, self._append_pull_requests)
 
     def fetch_pull_requests(self):
+        # TODO: don't duplicate
         self._prs.extend([i for i in self.repo.iter_pulls()])
 
     def fetch_open_issues(self):
+        # TODO: don't duplicate
         self._issues.extend([i for i in self.repo.iter_issues() if not i.pull_request])
 
     def fetch_closed_issues(self):
+        # TODO: don't duplicate
         self._issues.extend([i for i in self.repo.iter_issues(state='closed')])
 
     def _append_open_issues(self, future=None):
@@ -104,6 +115,23 @@ class IssuesAndPullRequests(MonitoredList):
         for pr in self._prs:
             if pr not in self:
                 self.append(pr)
+
+    def filter_by_labels(self, labels):
+        if self.showing in [self.OPEN_ISSUES, self.CLOSED_ISSUES]:
+            for i in self[:]:
+                has_labels = [label in i.labels for label in labels]
+                if not any(has_labels):
+                    self.remove(i)
+        else:
+            pass
+
+    def clear_label_filters(self):
+        if self.showing == self.OPEN_ISSUES:
+            self.show_open_issues()
+        elif self.showing == self.CLOSED_ISSUES:
+            self.show_closed_issues()
+        else:
+            self.show_pull_requests()
 
 
 class Shipit():
@@ -124,6 +152,9 @@ class Shipit():
         on("show_open_issues", self.issues_and_prs.show_open_issues)
         on("show_closed_issues", self.issues_and_prs.show_closed_issues)
         on("show_pull_requests", self.issues_and_prs.show_pull_requests)
+
+        on("filter_by_labels", self.issues_and_prs.filter_by_labels)
+        on("clear_label_filters", self.issues_and_prs.clear_label_filters)
 
     def start(self):
         self.loop = MainLoop(self.ui,

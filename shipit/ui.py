@@ -455,14 +455,9 @@ class Controls(urwid.ListBox):
         controls.extend([OpenIssuesFilter(filters),
                          ClosedIssuesFilter(filters),
                          PullRequestsFilter(filters),])
-        controls.append(br)
-
         # Labels
-        labels = [LabelWidget(label) for label in self.repo.iter_labels()]
-        labels.insert(0, Legend("Filter by label\n"))
-
-        controls.extend(labels)
-        controls.append(br)
+        labels = LabelFiltersWidget([label for label in self.repo.iter_labels()])
+        controls.extend([br, labels])
 
         return controls
 
@@ -497,6 +492,7 @@ class RadioButtonWrap(urwid.WidgetWrap):
         pass
 
 
+
 class OpenIssuesFilter(RadioButtonWrap):
     def __init__(self, filters):
         super().__init__(filters, "Open")
@@ -524,10 +520,57 @@ class PullRequestsFilter(RadioButtonWrap):
 class LabelWidget(urwid.WidgetWrap):
     """Represent a label."""
     def __init__(self, label):
-        checkbox = urwid.AttrMap(urwid.CheckBox(" "), "checkbox", "focus")
+        self.label = label
+        self.checkbox = urwid.CheckBox(" ")
+
+        checkbox = urwid.AttrMap(self.checkbox, "checkbox", "focus")
         label_widget = create_label_widget(label)
         widget = urwid.Columns([(5, checkbox), label_widget])
+
         super().__init__(widget)
+
+
+class LabelFiltersWidget(urwid.WidgetWrap):
+    """
+    A widget that renders checkboxes with the labels of the repo, meant to be
+    used for filtering by label.
+
+    When one or more labels are selected, a ``filter_by_labels`` event will be
+    triggered. When all the labels are deselected, a ``clear_label_filters``
+    event will be triggered.
+    """
+    def __init__(self, labels):
+        # Legend
+        widgets = [Legend("Filter by label")]
+        # Checkboxes
+        self.label_widgets = [LabelWidget(label) for label in labels]
+        widgets.extend(self.label_widgets)
+        widget = urwid.Pile(widgets)
+
+        for w in self.label_widgets:
+            urwid.connect_signal(w.checkbox, 'change', self.on_change, w.label)
+
+        super().__init__(widget)
+
+    def on_change(self, checkbox, new_state, label):
+        # Have to use ``id`` here since Checkbox widgets don't implement __eq__
+        widgets = [w for w in self.label_widgets if id(w.checkbox) != id(checkbox)]
+
+        labels = [w.label for w in widgets]
+        states = [w.checkbox.get_state() for w in widgets]
+
+        labels.append(label)
+        states.append(new_state)
+
+        if any(states):
+            # Get the checked labels and trigger ``filter_by_labels``
+            checked_labels = [label for label, state in zip(labels, states) if state]
+            trigger("filter_by_labels", checked_labels)
+        else:
+            # They are all unchecked
+            trigger("clear_label_filters")
+
+
 
 
 class IssueDetailWidget(urwid.WidgetWrap):

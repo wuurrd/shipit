@@ -9,6 +9,9 @@ EVENTS = [
  'show_open_issues',
  'show_closed_issues',
  'show_pull_requests',
+
+ 'filter_by_labels',
+ 'clear_label_filters',
 ]
 
 
