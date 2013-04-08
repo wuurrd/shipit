@@ -511,7 +511,7 @@ class RadioButtonWrap(urwid.WidgetWrap):
 
         urwid.connect_signal(widget, "change", self.on_change)
 
-        super().__init__(widget)
+        super().__init__(urwid.AttrWrap(widget, "default", "focus"))
 
 
     def on_change(self, checkbox, new_state):
@@ -553,7 +553,7 @@ class LabelWidget(urwid.WidgetWrap):
         self.label = label
         self.checkbox = urwid.CheckBox(" ")
 
-        checkbox = urwid.AttrMap(self.checkbox, "checkbox", "focus")
+        checkbox = urwid.AttrMap(self.checkbox, "default", "focus")
         label_widget = create_label_widget(label)
         widget = urwid.Columns([(5, checkbox), label_widget])
 

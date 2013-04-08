@@ -21,7 +21,6 @@ PALETTE = [
     ("focus",     "light red",       ""),
     ("number",    "dark gray",       ""),
     ("line",      "black",           ""),
-    ("checkbox",  "yellow",          ""),
     ("divider",   "light gray",      ""),
     ("legend",    "white,underline", ""),
     ("time",      "white",           ""),
