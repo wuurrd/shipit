@@ -174,20 +174,52 @@ class ViMotionListBox(urwid.ListBox):
         return super().keypress(size, key)
 
 
+class Header(urwid.WidgetWrap):
+    def __init__(self, repo):
+        self.repo = repo
+        super().__init__(urwid.Text("shipit"))
+
+    @staticmethod
+    def _make_text(text):
+        return urwid.Text(text, align='center')
+
+    def _owner_and_repo(self):
+        owner = ("username", str(self.repo.owner))
+        repo = ("text", self.repo.name)
+        return [owner, " / ", repo]
+
+    def issues_and_pulls(self):
+        self._w = self._make_text(self._owner_and_repo())
+
+    def issue(self, issue):
+        text = self._owner_and_repo()
+        text.extend([" ─ ",
+                     ("text", "Issue "),
+                     ("number", "#%s" % issue.number),
+                     " ",
+                     ("title", issue.title)])
+        self._w = self._make_text(text)
+
+    def pull_request(self, pr):
+        text = self._owner_and_repo()
+        text.extend([" ─ ",
+                     ("text", "Pull Request "),
+                     ("number", "#%s" % pr.number),
+                     " ",
+                     ("title", pr.title)])
+        self._w = self._make_text(text)
+
+
 class UI(urwid.WidgetWrap):
     """
     Creates a curses interface for the program, providing functions to draw
     all the components of the UI.
     """
-    HEADER_ISSUE_LIST = "{owner}/{repo}"
-    HEADER_ISSUE_DETAIL = "{owner}/{repo} ─ Issue #{num}: {title}"
-    HEADER_PR_DETAIL = "{owner}/{repo} ─ Pull Request #{num}: {title}"
-
     def __init__(self, repo):
         self.repo = repo
         self.views = {}
 
-        header = urwid.Text("shipit")
+        header = Header(repo)
 
         # body
         body = urwid.Text("shipit")
@@ -247,39 +279,36 @@ class UI(urwid.WidgetWrap):
     # -- Modes ----------------------------------------------------------------
 
     def issues_and_pulls(self, issues_and_pulls):
-        header_text = self.HEADER_ISSUE_LIST.format(owner=(str(self.repo.owner)),
-                                                    repo=self.repo.name)
-        self.frame.header.set_text(header_text)
+        self.frame.header.issues_and_pulls()
 
         if isinstance(self.frame.body, ListWidget):
             self.frame.body.reset_list(issues_and_pulls)
             return
 
-        if self.views.get("issues", None):
+        if "issues" in self.views:
             body = self.views["issues"]
         else:
             body = ListWidget(self.repo, issues_and_pulls)
             self.views["issues"] = body
-            #self.frame.body = body
 
         self.frame.set_body(body)
 
     def issue(self, issue):
-        header_text = self.HEADER_ISSUE_DETAIL.format(owner=(str(self.repo.owner)),
-                                                      repo=self.repo.name,
-                                                      num=issue.number,
-                                                      title=issue.title,)
-        self.frame.header.set_text(header_text)
-        body = issue_detail(issue)
+        self.frame.header.issue(issue)
+
+        key = "issue.%s" % issue.number
+        if key in self.views:
+            body = self.views[key]
+        else:
+            body = issue_detail(issue)
+            self.views[key] = body
+
         self.frame.set_body(body)
 
     def pull_request(self, pr):
         """Render a detail view for the `pr` pull request."""
-        header_text = self.HEADER_PR_DETAIL.format(owner=(str(self.repo.owner)),
-                                                   repo=self.repo.name,
-                                                   num=pr.number,
-                                                   title=pr.title,)
-        self.frame.header.set_text(header_text)
+        self.frame.header.pull_request(pr)
+
         self.frame.body = pull_request_detail(pr)
         self.frame.set_body(self.frame.body)
 

@@ -86,19 +86,25 @@ class IssuesAndPullRequests(MonitoredList):
         self.showing = self.OPEN_ISSUES
         del self[:]
         self._append_open_issues()
-        step(self.fetch_open_issues, self._append_open_issues)
 
     def show_closed_issues(self, **kwargs):
         self.showing = self.CLOSED_ISSUES
         del self[:]
         self._append_closed_issues()
-        step(self.fetch_closed_issues, self._append_closed_issues)
 
     def show_pull_requests(self, **kwargs):
         self.showing = self.PULL_REQUESTS
         del self[:]
         self._append_pull_requests()
-        step(self.fetch_pull_requests, self._append_pull_requests)
+
+    def fetch_all(self):
+        self.fetch_open_issues()
+        self.fetch_closed_issues()
+        self.fetch_pull_requests()
+
+    # TODO
+    #def update(self):
+        #pass
 
     def fetch_pull_requests(self):
         # TODO: don't duplicate
@@ -163,6 +169,7 @@ class Shipit():
 
         self.issues_and_prs = IssuesAndPullRequests(self.repo)
         self.issues_and_prs.set_modified_callback(self.on_modify_issues_and_prs)
+        self.issues_and_prs.fetch_all()
         self.issues_and_prs.show_open_issues()
 
         # Event handlers
