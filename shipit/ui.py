@@ -11,6 +11,19 @@ from .events import trigger
 from .models import is_issue, is_pull_request, is_comment, is_open
 from .func import unlines
 
+VI_KEYS = {
+    'j': 'down',
+    'k': 'up',
+    'h': 'left',
+    'l': 'right',
+
+    'ctrl u': 'page up',
+    'ctrl d': 'page down',
+
+    #'g': 'home',
+    #'G': 'end',
+}
+
 
 def issue_title(issue):
     return urwid.Text([("title", issue.title)])
@@ -152,6 +165,12 @@ def make_vertical_divider():
 
 def br():
     return Legend("")
+
+
+class ViMotionListBox(urwid.ListBox):
+    def keypress(self, size, key):
+        key = VI_KEYS.get(key, key)
+        return super().keypress(size, key)
 
 
 class UI(urwid.WidgetWrap):
@@ -354,7 +373,7 @@ def issue_detail(issue):
     comments = [IssueCommentWidget(issue, comment) for comment in issue.iter_comments()]
     comments.insert(0, IssueDetailWidget(issue))
 
-    thread = urwid.ListBox(urwid.SimpleListWalker(comments))
+    thread = ViMotionListBox(urwid.SimpleListWalker(comments))
 
     info_widgets = []
     if is_open(issue):
@@ -370,7 +389,8 @@ def issue_detail(issue):
 
     info_widgets.extend(label_widgets)
 
-    info = urwid.ListBox(urwid.SimpleListWalker(info_widgets))
+    # TODO: make `info` not selectable
+    info = ViMotionListBox(urwid.SimpleListWalker(info_widgets))
     vertical_divider = make_vertical_divider()
 
     widget = urwid.Columns([('weight', 0.8, thread),
@@ -384,7 +404,7 @@ def pull_request_detail(pr):
     comments = [PRCommentWidget(pr, comment) for comment in pr.issue.iter_comments()]
     comments.insert(0, PRDetailWidget(pr))
 
-    thread = urwid.ListBox(urwid.SimpleListWalker(comments))
+    thread = ViMotionListBox(urwid.SimpleListWalker(comments))
 
     info_widgets = []
     if is_open(pr):
@@ -402,7 +422,7 @@ def pull_request_detail(pr):
     info_widgets.append(deletions)
 
     # TODO: don't allow selection
-    info = urwid.ListBox(urwid.SimpleListWalker(info_widgets))
+    info = ViMotionListBox(urwid.SimpleListWalker(info_widgets))
 
     vertical_divider = make_vertical_divider()
 
@@ -429,7 +449,7 @@ class ListWidget(urwid.Columns):
     def __init__(self, repo, items):
         issue_widgets = [w for w in issue_list(items)]
 
-        self.issues = urwid.ListBox(urwid.SimpleListWalker(issue_widgets))
+        self.issues = ViMotionListBox(urwid.SimpleListWalker(issue_widgets))
         vertical_divider = make_vertical_divider()
         self.controls = Controls(repo, items)
 
@@ -444,7 +464,7 @@ class ListWidget(urwid.Columns):
         list_walker.extend(widgets)
 
 
-class Controls(urwid.ListBox):
+class Controls(ViMotionListBox):
     # TODO: Milestone
     # TODO: Assigned to you, Created by you
     def __init__(self, repo, issues):
@@ -778,7 +798,7 @@ class PRCommentWidget(IssueCommentWidget):
         super().__init__(pr.issue, comment)
 
 
-class Diff(urwid.ListBox):
+class Diff(ViMotionListBox):
     def __init__(self, pr):
         self.pr = pr
         self.diff = pr_diff(pr)
