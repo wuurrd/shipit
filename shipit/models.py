@@ -1,9 +1,9 @@
-from github3.issues import Issue
-from github3.pulls import PullRequest
+import github3.issues as issues
+import github3.pulls as pulls
 
 
 def is_issue(item):
-    return isinstance(item, Issue)
+    return isinstance(item, issues.Issue)
 
 
 def is_open(item):
@@ -17,4 +17,8 @@ def is_closed(item):
 
 
 def is_pull_request(item):
-    return isinstance(item, PullRequest)
+    return isinstance(item, pulls.PullRequest)
+
+
+def is_comment(item):
+    return isinstance(item, (issues.comment.IssueComment, pulls.ReviewComment))

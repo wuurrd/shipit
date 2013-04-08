@@ -17,7 +17,7 @@ from .config import (
 )
 from .ui import time_since
 from .events import on
-from .models import is_issue, is_pull_request, is_open, is_closed
+from .models import is_issue, is_pull_request, is_comment, is_open, is_closed
 from .func import lines, unlines, both
 
 NEW_ISSUE = """
@@ -68,8 +68,19 @@ class IssuesAndPullRequests(MonitoredList):
     def __init__(self, repo):
         self._issues = []
         self._prs = []
+        self._pr_issues = {}
         self.repo = repo
         self.showing = self.OPEN_ISSUES
+
+    def close(self, issue):
+        issue.close()
+        if self.showing == self.OPEN_ISSUES:
+            self.remove(issue)
+
+    def reopen(self, issue):
+        issue.reopen()
+        if self.showing == self.CLOSED_ISSUES:
+            self.remove(issue)
 
     def show_open_issues(self, **kwargs):
         self.showing = self.OPEN_ISSUES
@@ -91,11 +102,17 @@ class IssuesAndPullRequests(MonitoredList):
 
     def fetch_pull_requests(self):
         # TODO: don't duplicate
-        self._prs.extend([i for i in self.repo.iter_pulls()])
+        for p in self.repo.iter_pulls():
+            p.issue = self._pr_issues[p.number]
+            self._prs.append(p)
 
     def fetch_open_issues(self):
         # TODO: don't duplicate
-        self._issues.extend([i for i in self.repo.iter_issues() if not i.pull_request])
+        for i in self.repo.iter_issues():
+            if i.pull_request:
+                self._pr_issues[i.number] = i
+            else:
+                self._issues.append(i)
 
     def fetch_closed_issues(self):
         # TODO: don't duplicate
@@ -218,7 +235,7 @@ class Shipit():
             if not issue:
                 return
 
-            issue.close()
+            self.issues_and_prs.close(issue)
 
             if self.mode is self.ISSUE_DETAIL:
                 self.issue_detail(issue)
@@ -226,7 +243,7 @@ class Shipit():
             issue = self.ui.get_issue()
 
             if issue and is_closed(issue):
-                issue.reopen()
+                self.issues_and_prs.reopen(issue)
 
             if self.mode is self.ISSUE_DETAIL:
                 self.issue_detail(issue)
@@ -245,57 +262,29 @@ class Shipit():
                 elif is_pull_request(issue_or_pr):
                     self.pull_request_detail(issue_or_pr)
         elif key == KEY_EDIT:
-            # TODO: not the issue but what it's focused, could be a comment!
-            issue = self.ui.get_issue()
-            if issue is None:
+            item = self.ui.get_focused_item()
+
+            if item is None:
                 return
 
-            title_and_body = '\n'.join([issue.title, issue.body])
-            issue_text = self.spawn_editor(title_and_body)
+            if is_pull_request(item):
+                item = item.issue
 
-            if issue_text is None:
-                # TODO: cancelled
-                return
-
-            contents = unlines(issue_text)
-            title, *body = contents
-
-            if not title:
-                # TODO: incorrect input, at least a title is needed
-                return
-            body = lines(body)
-
-            issue.edit(title=title, body=body)
-
-            if self.mode is self.ISSUE_LIST:
-                self.issue_list()
-            elif self.mode is self.ISSUE_DETAIL:
-                self.issue_detail(issue)
+            if is_issue(item):
+                self.edit_issue(item)
+            else:
+                self.edit_body(item)
         elif key == KEY_COMMENT:
-            issue = self.ui.get_issue()
-            if issue is None:
+            item = self.ui.get_issue_or_pr()
+
+            if item is None:
                 return
 
-            # Inline all the thread comments
-            issue_thread = [format_comment(comment) for comment in issue.iter_comments()]
-            issue_thread.insert(0,'\n\n'.join([issue.title, issue.body_text, '']))
-            # Make the whole thread a comment
-            issue_thread.insert(0, '<!---\n')
-            issue_thread.append('-->')
-
-            comment_text = self.spawn_editor('\n'.join(issue_thread))
-
-            if comment_text is None:
-                # TODO: cancelled
-                return key
-
-            if not comment_text:
-                # TODO: A empty comment is invalid input
-                return key
-
-            issue.create_comment(comment_text)
-
-            self.issue_detail(issue)
+            if is_pull_request(item):
+                issue = item.issue
+                self.comment_issue(item.issue, pull_request=item)
+            else:
+                self.comment_issue(item)
         elif key == KEY_DIFF:
             if self.mode is self.PR_DETAIL:
                 pr = self.ui.get_focused_item()
@@ -306,6 +295,69 @@ class Shipit():
                 webbrowser.open(item.html_url)
         elif key == KEY_QUIT:
             raise ExitMainLoop
+
+    def edit_issue(self, issue):
+        title_and_body = '\n'.join([issue.title, issue.body])
+        issue_text = self.spawn_editor(title_and_body)
+
+        if issue_text is None:
+            # TODO: cancelled
+            return
+
+        contents = unlines(issue_text)
+        title, *body = contents
+
+        if not title:
+            # TODO: incorrect input, at least a title is needed
+            return
+        body = lines(body)
+
+        issue.edit(title=title, body=body)
+
+        if self.mode is self.ISSUE_LIST:
+            # TODO: focus
+            self.issue_list()
+        elif self.mode is self.ISSUE_DETAIL:
+            self.issue_detail(issue)
+
+    # TODO
+    def edit_pull_request(self, pr):
+        pass
+
+    def edit_body(self, item):
+        text = self.spawn_editor(item.body)
+
+        if text is None:
+            # TODO: cancelled
+            return
+
+        # TODO: ui must be updated!
+        item.edit(text)
+
+    def comment_issue(self, issue, *, pull_request=False):
+        # Inline all the thread comments
+        issue_thread = [format_comment(comment) for comment in issue.iter_comments()]
+        issue_thread.insert(0,'\n\n'.join([issue.title, issue.body_text, '']))
+        # Make the whole thread a comment
+        issue_thread.insert(0, '<!---\n')
+        issue_thread.append('-->')
+
+        comment_text = self.spawn_editor('\n'.join(issue_thread))
+
+        if comment_text is None:
+            # TODO: cancelled
+            return
+
+        if not comment_text:
+            # TODO: A empty comment is invalid input
+            return
+
+        issue.create_comment(comment_text)
+
+        if pull_request:
+            self.pull_request_detail(pull_request)
+        else:
+            self.issue_detail(issue)
 
     def spawn_editor(self, help_text=None):
         """

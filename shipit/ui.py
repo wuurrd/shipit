@@ -8,7 +8,7 @@ from x256 import x256
 
 from .config import DIVIDER
 from .events import trigger
-from .models import is_issue, is_pull_request, is_open
+from .models import is_issue, is_pull_request, is_comment, is_open
 from .func import unlines
 
 
@@ -62,17 +62,7 @@ def pr_author(pr):
 
 
 def pr_comments(pr):
-    comments = len([_ for _ in pr.iter_comments()])
-
-    if not comments:
-        return None
-
-    if comments == 1:
-        text = "1 comment"
-    else:
-        text = "%s comments" % comments
-
-    return urwid.Text(("text", text))
+    return issue_comments(pr.issue)
 
 
 def pr_commits(pr):
@@ -160,6 +150,10 @@ def make_vertical_divider():
     return urwid.Padding(urwid.SolidFill("·"), left=1, right=1)
 
 
+def br():
+    return Legend("")
+
+
 class UI(urwid.WidgetWrap):
     """
     Creates a curses interface for the program, providing functions to draw
@@ -185,10 +179,14 @@ class UI(urwid.WidgetWrap):
 
     # -- API ------------------------------------------------------------------
 
-    def get_focused_item(self):
+    def get_focused_item(self, *, parent_over_comment=False):
         """
         Return the currently focused item when a Issue or Pull Request is
         focused.
+
+        If the keyword arg ``parent_over_comment`` is ``True``, the original
+        Issue or Pull Request will be returned instead of the comment when a
+        comment is focused.
         """
         body = self.frame.body
 
@@ -200,17 +198,31 @@ class UI(urwid.WidgetWrap):
             focused = None
         elif isinstance(widget, PRDetailWidget):
             focused = widget.pr
+        elif isinstance(widget, PRCommentWidget):
+            focused = widget.pr if parent_over_comment else widget.comment
+        elif isinstance(widget, IssueCommentWidget):
+            focused = widget.issue if parent_over_comment else widget.comment
         else:
             focused = widget.issue if hasattr(widget, 'issue') else None
 
-        issue_or_pr = is_issue(focused) or is_pull_request(focused)
+        focused_is_valid = any([is_issue(focused),
+                                is_pull_request(focused),
+                                is_comment(focused)])
 
-        return focused if issue_or_pr else None
+        return focused if focused_is_valid else None
 
     def get_issue(self):
-        """Return a issue if it"s focused, otherwise return ``None``."""
-        issue = self.get_focused_item()
+        """Return a issue if it's focused, otherwise return ``None``."""
+        issue = self.get_focused_item(parent_over_comment=True)
         return issue if is_issue(issue) else None
+
+    def get_issue_or_pr(self):
+        """
+        Return a issue or pull request if it's focused, otherwise return
+        ``None``.
+        """
+        item = self.get_focused_item(parent_over_comment=True)
+        return item if is_issue(item) or is_pull_request(item) else None
 
     # -- Modes ----------------------------------------------------------------
 
@@ -261,9 +273,6 @@ class IssueListWidget(urwid.WidgetWrap):
     Widget containing a issue's basic information, meant to be rendered on a
     list.
     """
-    HEADER_FORMAT = "#{num} ─ {title}       "
-    BODY_FORMAT = "by {author}  {time}      {comments}"
-
     def __init__(self, issue):
         self.issue = issue
 
@@ -372,7 +381,7 @@ def issue_detail(issue):
 
 
 def pull_request_detail(pr):
-    comments = [PRCommentWidget(pr, comment) for comment in pr.iter_comments()]
+    comments = [PRCommentWidget(pr, comment) for comment in pr.issue.iter_comments()]
     comments.insert(0, PRDetailWidget(pr))
 
     thread = urwid.ListBox(urwid.SimpleListWalker(comments))
@@ -447,7 +456,6 @@ class Controls(urwid.ListBox):
         super().__init__(urwid.SimpleListWalker(widgets))
 
     def _build_widgets(self):
-        br = Legend("")
         controls = []
         # Open/Closed/Pull Request
         controls.append(Legend("Filter by state\n"))
@@ -457,7 +465,7 @@ class Controls(urwid.ListBox):
                          PullRequestsFilter(filters),])
         # Labels
         labels = LabelFiltersWidget([label for label in self.repo.iter_labels()])
-        controls.extend([br, labels])
+        controls.extend([br(), labels])
 
         return controls
 
@@ -541,7 +549,7 @@ class LabelFiltersWidget(urwid.WidgetWrap):
     """
     def __init__(self, labels):
         # Legend
-        widgets = [Legend("Filter by label")]
+        widgets = [Legend("Filter by label"), br()]
         # Checkboxes
         self.label_widgets = [LabelWidget(label) for label in labels]
         widgets.extend(self.label_widgets)
@@ -649,12 +657,12 @@ class IssueCommentWidget(urwid.WidgetWrap):
         self.issue = issue
         self.comment = comment
 
-        widget = self._build_widget(issue, comment)
+        widget = self._build_widget(comment)
 
         super().__init__(widget)
 
     @classmethod
-    def _build_widget(cls, issue, comment):
+    def _build_widget(cls, comment):
         """Return the wrapped widget."""
         header = cls._create_header(comment)
         body = cls._create_body(comment)
@@ -752,7 +760,7 @@ class PRDetailWidget(urwid.WidgetWrap):
 
     @classmethod
     def _create_body_widget(cls, pr):
-        widget = urwid.Text(["\n", ("body", pr.body_text)])
+        widget = urwid.Text(["\n", ("body", pr.issue.body_text)])
         return urwid.Padding(widget, left=2, right=2)
 
     def selectable(self):
@@ -766,20 +774,8 @@ class PRDetailWidget(urwid.WidgetWrap):
 class PRCommentWidget(IssueCommentWidget):
     def __init__(self, pr, comment):
         self.pr = pr
-        self.comment = comment
 
-        header_text = self._create_header(comment)
-        body_text = self._create_body(comment)
-
-        widget = self._build_widget(header_text, body_text)
-
-        super(IssueCommentWidget, self).__init__(widget)
-
-    @classmethod
-    def _create_body(cls, comment):
-        return cls.BODY_FORMAT.format(
-            body=comment.body,
-        )
+        super().__init__(pr.issue, comment)
 
 
 class Diff(urwid.ListBox):
