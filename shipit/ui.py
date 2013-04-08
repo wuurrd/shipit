@@ -26,7 +26,8 @@ VI_KEYS = {
 
 
 def issue_title(issue):
-    return urwid.Text([("title", issue.title)])
+    text = urwid.Text([("title", issue.title)])
+    return urwid.Padding(text, left=0, right=3)
 
 
 def issue_comments(issue):
@@ -306,7 +307,8 @@ class IssueListWidget(urwid.WidgetWrap):
 
         title = issue_title(issue)
         labels = cls._create_label_widgets(issue)
-        title_labels = urwid.Columns([(60, title), labels])
+        title_labels = urwid.Columns([('weight', 0.7, title),
+                                      ('weight', 0.3, labels)])
 
         author = issue_author(issue)
         time = issue_time(issue)
@@ -331,7 +333,7 @@ class IssueListWidget(urwid.WidgetWrap):
     @classmethod
     def _create_label_widgets(cls, issue):
         label_widgets = [create_label_widget(label) for label in issue.labels]
-        return urwid.Columns(label_widgets)
+        return urwid.Pile(label_widgets)
 
     def selectable(self):
         return True
