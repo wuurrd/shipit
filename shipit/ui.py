@@ -508,12 +508,19 @@ class Controls(ViMotionListBox):
 
     def _build_widgets(self):
         controls = []
+        # Assignation
+        filters = []
+        controls.extend([AllFilter(filters),
+                         CreatedFilter(filters),
+                         AssignedFilter(filters),
+                         MentioningFilter(filters),
+                         make_divider(),])
         # Open/Closed/Pull Request
         controls.append(Legend("Filter by state\n"))
-        filters = []
-        controls.extend([OpenIssuesFilter(filters),
-                         ClosedIssuesFilter(filters),
-                         PullRequestsFilter(filters),])
+        state_filters = []
+        controls.extend([OpenIssuesFilter(state_filters),
+                         ClosedIssuesFilter(state_filters),
+                         PullRequestsFilter(state_filters),])
         # Labels
         labels = LabelFiltersWidget([label for label in self.repo.iter_labels()])
         controls.extend([br(), labels])
@@ -550,6 +557,37 @@ class RadioButtonWrap(urwid.WidgetWrap):
     def on_check(self):
         pass
 
+
+class AllFilter(RadioButtonWrap):
+    def __init__(self, filters):
+        super().__init__(filters, "All")
+
+    def on_check(self):
+        trigger("show_all")
+
+
+class CreatedFilter(RadioButtonWrap):
+    def __init__(self, filters):
+        super().__init__(filters, "Created by you")
+
+    def on_check(self):
+        trigger("show_created_by_you")
+
+
+class AssignedFilter(RadioButtonWrap):
+    def __init__(self, filters):
+        super().__init__(filters, "Assigned to you")
+
+    def on_check(self):
+        trigger("show_assigned_to_you")
+
+
+class MentioningFilter(RadioButtonWrap):
+    def __init__(self, filters):
+        super().__init__(filters, "Mentioning you")
+
+    def on_check(self):
+        trigger("show_mentioning_you")
 
 
 class OpenIssuesFilter(RadioButtonWrap):

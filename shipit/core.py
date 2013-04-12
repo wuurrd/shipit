@@ -6,8 +6,9 @@ import subprocess
 import tempfile
 import concurrent.futures
 import webbrowser
+from functools import partial
 
-from urwid import MainLoop, ExitMainLoop, MonitoredList
+from urwid import MainLoop, ExitMainLoop
 
 from .config import (
     PALETTE,
@@ -17,8 +18,12 @@ from .config import (
 )
 from .ui import time_since
 from .events import on
-from .models import is_issue, is_pull_request, is_comment, is_open, is_closed
 from .func import lines, unlines, both
+from .models import (
+    is_issue, is_pull_request, is_comment, is_open, is_closed,
+
+    IssuesAndPullRequests,
+)
 
 NEW_ISSUE = """
 <!---
@@ -35,7 +40,6 @@ def strip_comments(text):
     return COMMENT_RE.sub('', text.strip())
 
 
-
 def format_comment(comment):
     author = str(comment.user)
     time = time_since(comment.created_at)
@@ -47,114 +51,10 @@ def format_comment(comment):
                                                           body=body,)
 
 
-def step(first, last):
-    """Call ``first`` asynchronously, and then add ``last`` as a callback."""
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        future = executor.submit(first)
-        future.add_done_callback(last)
-
-
 def discard_args(func):
     def wrapper(*args, **kwargs):
         return func()
     return wrapper
-
-
-class IssuesAndPullRequests(MonitoredList):
-    OPEN_ISSUES = 0
-    CLOSED_ISSUES = 1
-    PULL_REQUESTS = 2
-
-    def __init__(self, repo):
-        self._issues = []
-        self._prs = []
-        self._pr_issues = {}
-        self.repo = repo
-        self.showing = self.OPEN_ISSUES
-
-    def close(self, issue):
-        issue.close()
-        if self.showing == self.OPEN_ISSUES:
-            self.remove(issue)
-
-    def reopen(self, issue):
-        issue.reopen()
-        if self.showing == self.CLOSED_ISSUES:
-            self.remove(issue)
-
-    def show_open_issues(self, **kwargs):
-        self.showing = self.OPEN_ISSUES
-        del self[:]
-        self._append_open_issues()
-
-    def show_closed_issues(self, **kwargs):
-        self.showing = self.CLOSED_ISSUES
-        del self[:]
-        self._append_closed_issues()
-
-    def show_pull_requests(self, **kwargs):
-        self.showing = self.PULL_REQUESTS
-        del self[:]
-        self._append_pull_requests()
-
-    def fetch_all(self):
-        self.fetch_open_issues()
-        self.fetch_closed_issues()
-        self.fetch_pull_requests()
-
-    # TODO
-    #def update(self):
-        #pass
-
-    def fetch_pull_requests(self):
-        # TODO: don't duplicate
-        for p in self.repo.iter_pulls():
-            p.issue = self._pr_issues[p.number]
-            self._prs.append(p)
-
-    def fetch_open_issues(self):
-        # TODO: don't duplicate
-        for i in self.repo.iter_issues():
-            if i.pull_request:
-                self._pr_issues[i.number] = i
-            else:
-                self._issues.append(i)
-
-    def fetch_closed_issues(self):
-        # TODO: don't duplicate
-        self._issues.extend([i for i in self.repo.iter_issues(state='closed')])
-
-    def _append_open_issues(self, future=None):
-        for i in filter(is_open, self._issues):
-            if i not in self:
-                self.append(i)
-
-    def _append_closed_issues(self, future=None):
-        for i in filter(is_closed, self._issues):
-            if i not in self:
-                self.append(i)
-
-    def _append_pull_requests(self, future=None):
-        for pr in self._prs:
-            if pr not in self:
-                self.append(pr)
-
-    def filter_by_labels(self, labels):
-        if self.showing in [self.OPEN_ISSUES, self.CLOSED_ISSUES]:
-            for i in self[:]:
-                has_labels = [label in i.labels for label in labels]
-                if not any(has_labels):
-                    self.remove(i)
-        else:
-            pass
-
-    def clear_label_filters(self):
-        if self.showing == self.OPEN_ISSUES:
-            self.show_open_issues()
-        elif self.showing == self.CLOSED_ISSUES:
-            self.show_closed_issues()
-        else:
-            self.show_pull_requests()
 
 
 class Shipit():
@@ -174,6 +74,17 @@ class Shipit():
         self.issues_and_prs.show_open_issues()
 
         # Event handlers
+        on("show_all", self.issues_and_prs.show_all)
+
+        created_by_you = partial(self.issues_and_prs.show_created_by, self.user)
+        on("show_created_by_you", created_by_you)
+
+        assigned_to_you = partial(self.issues_and_prs.show_assigned_to, self.user)
+        on("show_assigned_to_you", assigned_to_you)
+
+        mentioning_you = partial(self.issues_and_prs.show_mentioning, self.user)
+        on("show_mentioning_you", mentioning_you)
+
         on("show_open_issues", self.issues_and_prs.show_open_issues)
         on("show_closed_issues", self.issues_and_prs.show_closed_issues)
         on("show_pull_requests", self.issues_and_prs.show_pull_requests)

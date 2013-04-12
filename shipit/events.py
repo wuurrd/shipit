@@ -6,12 +6,17 @@ Poor man's pub-sub mechanism.
 """
 
 EVENTS = [
- 'show_open_issues',
- 'show_closed_issues',
- 'show_pull_requests',
+ "show_all",
+ "show_created_by_you",
+ "show_assigned_to_you",
+ "show_mentioning_you",
 
- 'filter_by_labels',
- 'clear_label_filters',
+ "show_open_issues",
+ "show_closed_issues",
+ "show_pull_requests",
+
+ "filter_by_labels",
+ "clear_label_filters",
 ]
 
 
