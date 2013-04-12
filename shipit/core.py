@@ -163,9 +163,10 @@ class Shipit():
     PR_DETAIL = 2
     PR_DIFF = 3
 
-    def __init__(self, ui, repo):
+    def __init__(self, ui, repo, user):
         self.ui = ui
         self.repo = repo
+        self.user = user
 
         self.issues_and_prs = IssuesAndPullRequests(self.repo)
         self.issues_and_prs.set_modified_callback(self.on_modify_issues_and_prs)
@@ -276,6 +277,12 @@ class Shipit():
 
             if is_pull_request(item):
                 item = item.issue
+
+            # In case you aren't the owner of the repo, you are only allowed to
+            # edit things that you created.
+            if self.repo.owner != self.user and item.user != self.user:
+                # TODO: beep
+                return
 
             if is_issue(item):
                 self.edit_issue(item)

@@ -44,6 +44,8 @@ def main():
 
     api = login()
 
+    user = api.user()
+
     # Get the user and repository that we are we going to manage
     user_repo_arg = args['user/repository'].strip()
 
@@ -69,7 +71,7 @@ def main():
     else:
         # If a `/` isn't included, assume that it's the name of the repository
         # and the logged in user owns it
-        USER, REPO = str(api.user()), user_repo_arg
+        USER, REPO = str(user), user_repo_arg
 
     # fetch repo
     repo = api.repository(USER, REPO)
@@ -78,6 +80,6 @@ def main():
     ui = UI(repo)
 
     # create controller
-    shipit = Shipit(ui, repo)
+    shipit = Shipit(ui, repo, user)
 
     shipit.start()
