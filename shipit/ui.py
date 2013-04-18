@@ -169,9 +169,16 @@ def br():
 
 
 class ViMotionListBox(urwid.ListBox):
+    def __init__(self, *args, selectable=True):
+        super().__init__(*args)
+        self._selectable = selectable
+
     def keypress(self, size, key):
         key = VI_KEYS.get(key, key)
         return super().keypress(size, key)
+
+    def selectable(self):
+        return self._selectable
 
 
 class Header(urwid.WidgetWrap):
@@ -420,8 +427,8 @@ def issue_detail(issue):
 
     info_widgets.extend(label_widgets)
 
-    # TODO: make `info` not selectable
-    info = ViMotionListBox(urwid.SimpleListWalker(info_widgets))
+    info = ViMotionListBox(urwid.SimpleListWalker(info_widgets),
+                           selectable=False)
     vertical_divider = make_vertical_divider()
 
     widget = urwid.Columns([('weight', 0.8, thread),
@@ -452,8 +459,8 @@ def pull_request_detail(pr):
     info_widgets.append(additions)
     info_widgets.append(deletions)
 
-    # TODO: don't allow selection
-    info = ViMotionListBox(urwid.SimpleListWalker(info_widgets))
+    info = ViMotionListBox(urwid.SimpleListWalker(info_widgets),
+                           selectable=False)
 
     vertical_divider = make_vertical_divider()
 
