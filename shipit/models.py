@@ -25,6 +25,15 @@ def is_pull_request(item):
     return isinstance(item, pulls.PullRequest)
 
 
+def extract_issue(issue_or_pull):
+    if is_pull_request(issue_or_pull):
+        return issue_or_pull.issue
+    elif is_issue(issue_or_pull):
+        return issue_or_pull
+    else:
+        raise TypeError("A Issue or Pull Request was expected")
+
+
 def is_comment(item):
     return isinstance(item, (issues.comment.IssueComment, pulls.ReviewComment))
 
@@ -63,6 +72,7 @@ class DataFilter(metaclass=ABCMeta):
 
 
 class IssueSource(DataSource):
+    # TODO: use etag to minimize payloads
     def __init__(self, repo):
         self.repo = repo
         self.issues = []
@@ -97,6 +107,7 @@ class IssueSource(DataSource):
 
 
 class PullRequestSource(DataSource):
+    # TODO: use etag here, too
     def __init__(self, repo):
         self.repo = repo
         self.pulls = []
@@ -114,6 +125,74 @@ class PullRequestSource(DataSource):
             self.update()
             self.bootstrapped = True
         return iter(self.pulls)
+
+
+class LabelsFilter(DataFilter):
+    def __init__(self, labels=None):
+        self.labels = [] if labels is None else labels
+
+    def has_labels(self, issue):
+        return any(label in issue.labels for label in self.labels)
+
+    def filter(self, iterable):
+        if not self.labels:
+            # We needn't filter anything!
+            for i in iterable:
+                yield i
+            return
+
+        for i in iterable:
+            issue = extract_issue(i)
+            if self.has_labels(issue):
+                yield i
+
+    def reset(self, labels=None):
+        self.labels = [] if labels is None else labels
+
+
+class NoOpFilter(DataFilter):
+    def filter(self, iterable):
+        return (i for i in iterable)
+
+
+class UserFilter(DataFilter):
+    def __init__(self, user):
+        self.user = user
+
+
+class CreatedByFilter(UserFilter):
+    def filter(self, iterable):
+        for i in iterable:
+            if i.user == self.user:
+                yield i
+
+
+class AssignedToFilter(UserFilter):
+    def filter(self, iterable):
+        for i in iterable:
+            issue = extract_issue(i)
+            if issue.assignee and issue.assignee == self.user:
+                yield i
+
+
+class MentioningFilter(UserFilter):
+    def is_mentioned_in(self, issue):
+        # TODO: make it faster
+        username = "@%s " % str(self.user)
+
+        if username in issue.body_text:
+            return True
+
+        for comment in issue.iter_comments():
+            if username in comment.body_text:
+                return True
+        else:
+            return False
+
+    def filter(self, iterable):
+        for i in iterable:
+            if self.is_mentioned_in(i):
+                yield i
 
 
 class IssuesAndPullRequests(MonitoredList):
@@ -134,7 +213,8 @@ class IssuesAndPullRequests(MonitoredList):
         self._issues_source = IssueSource(repo)
         self._prs_source = PullRequestSource(repo)
         # Filters
-        self._filters = []
+        self.label_filter = LabelsFilter()
+        self.participating_filter = NoOpFilter()
         # What's currently holding
         self.showing = self.OPEN_ISSUES
 
@@ -152,19 +232,7 @@ class IssuesAndPullRequests(MonitoredList):
 
     # TODO: merge PR
 
-    # Filters
-
-    def show_all(self):
-        pass
-
-    def show_created_by(self, user):
-        pass
-
-    def show_assigned_to(self, user):
-        pass
-
-    def show_mentioning(self, user):
-        pass
+    # Sources
 
     def show_open_issues(self, **kwargs):
         self.showing = self.OPEN_ISSUES
@@ -181,39 +249,58 @@ class IssuesAndPullRequests(MonitoredList):
         del self[:]
         self._append_pull_requests()
 
-    # TODO
-    #def update(self):
-        #pass
-
     def _append_open_issues(self):
-        for i in self._issues_source.iter_open():
+        iterable = self._issues_source.iter_open()
+        for i in self.filter(iterable):
             if i not in self:
                 self.append(i)
 
     def _append_closed_issues(self):
-        for i in self._issues_source.iter_closed():
+        iterable = self._issues_source.iter_closed()
+        for i in self.filter(iterable):
             if i not in self:
                 self.append(i)
 
     def _append_pull_requests(self):
-        for pr in self._prs_source:
+        for pr in self.filter(self._prs_source):
             if pr not in self:
                 self.append(pr)
 
+    # Filters
+
+    @property
+    def filter(self):
+        return DataFilter.compose(self.label_filter, self.participating_filter)
+
+    def show_all(self):
+        self.participating_filter = NoOpFilter()
+        self.refresh()
+
+    def show_created_by(self, user):
+        self.participating_filter = CreatedByFilter(user)
+        self.refresh()
+
+    def show_assigned_to(self, user):
+        self.participating_filter = AssignedToFilter(user)
+        self.refresh()
+
+    def show_mentioning(self, user):
+        self.participating_filter = MentioningFilter(user)
+        self.refresh()
+
+    # TODO
+    #def update(self):
+        #pass
+
     def filter_by_labels(self, labels):
-        if self.showing in [self.OPEN_ISSUES, self.CLOSED_ISSUES]:
-            for i in self[:]:
-                has_labels = [label in i.labels for label in labels]
-                if not any(has_labels):
-                    self.remove(i)
-        else:
-            for pr in self[:]:
-                i = pr.issue
-                has_labels = [label in i.labels for label in labels]
-                if not any(has_labels):
-                    self.remove(pr)
+        self.label_filter.reset(labels)
+        self.refresh()
 
     def clear_label_filters(self):
+        self.label_filter.reset()
+        self.refresh()
+
+    def refresh(self):
         if self.showing == self.OPEN_ISSUES:
             self.show_open_issues()
         elif self.showing == self.CLOSED_ISSUES:

@@ -515,21 +515,22 @@ class Controls(ViMotionListBox):
 
     def _build_widgets(self):
         controls = []
-        # Assignation
-        filters = []
-        controls.extend([AllFilter(filters),
-                         CreatedFilter(filters),
-                         AssignedFilter(filters),
-                         MentioningFilter(filters),
-                         make_divider(),])
         # Open/Closed/Pull Request
-        controls.append(Legend("Filter by state\n"))
         state_filters = []
         controls.extend([OpenIssuesFilter(state_filters),
                          ClosedIssuesFilter(state_filters),
-                         PullRequestsFilter(state_filters),])
+                         PullRequestsFilter(state_filters),
+                         make_divider()])
+        # Assignation filters
+        filters = []
+        controls.extend([Legend("Show"),
+                         br(),
+                         AllFilter(filters),
+                         CreatedFilter(filters),
+                         AssignedFilter(filters),
+                         MentioningFilter(filters),])
         # Labels
-        labels = LabelFiltersWidget([label for label in self.repo.iter_labels()])
+        labels = LabelFiltersWidget(label for label in self.repo.iter_labels())
         controls.extend([br(), labels])
 
         return controls
