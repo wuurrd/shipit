@@ -272,7 +272,6 @@ class Footer(urwid.WidgetWrap):
         return text
 
 
-
 class UI(urwid.WidgetWrap):
     """
     Creates a curses interface for the program, providing functions to draw
