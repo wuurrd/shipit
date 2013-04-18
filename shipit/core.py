@@ -70,7 +70,6 @@ class Shipit():
 
         self.issues_and_prs = IssuesAndPullRequests(self.repo)
         self.issues_and_prs.set_modified_callback(self.on_modify_issues_and_prs)
-        self.issues_and_prs.fetch_all()
         self.issues_and_prs.show_open_issues()
 
         # Event handlers
@@ -124,8 +123,6 @@ class Shipit():
         self.loop.draw_screen()
 
     def handle_keypress(self, key):
-        #  R: reopen
-        #  D: delete
         if key == KEY_OPEN_ISSUE:
             if self.mode is self.ISSUE_LIST:
                 issue_text = self.spawn_editor(NEW_ISSUE)
