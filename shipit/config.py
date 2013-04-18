@@ -32,4 +32,6 @@ PALETTE = [
     ("red_text", "dark red", ""),
     ("cyan_text", "dark cyan", ""),
     ("pull",   "yellow", ""),
+
+    ("key",  "white", "dark blue"),
 ]

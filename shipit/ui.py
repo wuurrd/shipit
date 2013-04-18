@@ -6,7 +6,12 @@ from calendar import timegm
 import urwid
 from x256 import x256
 
-from .config import DIVIDER
+from .config import (
+    DIVIDER,
+
+    KEY_OPEN_ISSUE, KEY_REOPEN_ISSUE, KEY_CLOSE_ISSUE, KEY_BROWSER, KEY_DETAIL,
+    KEY_COMMENT, KEY_EDIT, KEY_QUIT, KEY_BACK, KEY_DIFF
+)
 from .events import trigger
 from .models import is_issue, is_pull_request, is_comment, is_open
 from .func import unlines
@@ -24,6 +29,31 @@ VI_KEYS = {
     #'G': 'end',
 }
 
+ISSUE_LIST_KEYS = [
+    (KEY_DETAIL, " View in detail "),
+    (KEY_BROWSER, " Open in browser "),
+    (KEY_OPEN_ISSUE, " Open issue "),
+    (KEY_CLOSE_ISSUE, " Close "),
+    (KEY_REOPEN_ISSUE, " Reopen "),
+    (KEY_COMMENT, " Comment "),
+    (KEY_EDIT, " Edit "),
+    (KEY_QUIT, " Quit "),
+]
+
+ISSUE_DETAIL_KEYS = [
+    (KEY_BACK, " Go back "),
+    (KEY_CLOSE_ISSUE, " Close issue "),
+    (KEY_REOPEN_ISSUE, " Reopen issue "),
+    (KEY_COMMENT, " Comment on issue "),
+    (KEY_EDIT, " Edit issue or comment "),
+    (KEY_QUIT, " Quit "),
+]
+
+PR_DETAIL_KEYS = [
+    (KEY_BACK, " Go back "),
+    (KEY_DIFF, " View diff "),
+    (KEY_QUIT, " Quit "),
+]
 
 def issue_title(issue):
     text = urwid.Text([("title", issue.title)])
@@ -156,12 +186,12 @@ def box(widget):
     return urwid.AttrMap(urwid.LineBox(widget), "line", "focus")
 
 
-def make_divider():
-    return urwid.AttrMap(urwid.Divider(DIVIDER), "divider")
+def make_divider(divider=DIVIDER):
+    return urwid.AttrMap(urwid.Divider(divider), "divider")
 
 
 def make_vertical_divider():
-    return urwid.Padding(urwid.SolidFill("·"), left=1, right=1)
+    return urwid.Padding(urwid.SolidFill(" "), left=1, right=1)
 
 
 def br():
@@ -217,6 +247,32 @@ class Header(urwid.WidgetWrap):
         self._w = self._make_text(text)
 
 
+class Footer(urwid.WidgetWrap):
+    def __init__(self):
+        super().__init__(urwid.Text(""))
+
+    def issue_list(self):
+        self._w = self._build_widget(ISSUE_LIST_KEYS)
+
+    def issue_detail(self):
+        self._w = self._build_widget(ISSUE_DETAIL_KEYS)
+
+    def pr_detail(self):
+        self._w = self._build_widget(PR_DETAIL_KEYS)
+
+    def _build_widget(self, key_description):
+        text = self._build_text_list(key_description)
+        return urwid.Pile([make_divider("·"),
+                           urwid.Text(text, align="center")])
+
+    def _build_text_list(self, key_description):
+        text = []
+        for key, description in key_description:
+            text.extend([("key", key), ("text", description)])
+        return text
+
+
+
 class UI(urwid.WidgetWrap):
     """
     Creates a curses interface for the program, providing functions to draw
@@ -227,12 +283,13 @@ class UI(urwid.WidgetWrap):
         self.views = {}
 
         header = Header(repo)
+        footer = Footer()
 
         # body
         body = urwid.Text("shipit")
 
         # footer
-        self.frame = urwid.Frame(body, header=header)
+        self.frame = urwid.Frame(body, header=header, footer=footer)
 
         super().__init__(self.frame)
 
@@ -287,6 +344,7 @@ class UI(urwid.WidgetWrap):
 
     def issues_and_pulls(self, issues_and_pulls):
         self.frame.header.issues_and_pulls()
+        self.frame.footer.issue_list()
 
         if isinstance(self.frame.body, ListWidget):
             self.frame.body.reset_list(issues_and_pulls)
@@ -302,6 +360,7 @@ class UI(urwid.WidgetWrap):
 
     def issue(self, issue):
         self.frame.header.issue(issue)
+        self.frame.footer.issue_detail()
 
         key = "issue.%s" % issue.number
         if key in self.views:
@@ -315,6 +374,7 @@ class UI(urwid.WidgetWrap):
     def pull_request(self, pr):
         """Render a detail view for the `pr` pull request."""
         self.frame.header.pull_request(pr)
+        self.frame.footer.pr_detail()
 
         self.frame.body = pull_request_detail(pr)
         self.frame.set_body(self.frame.body)
@@ -503,8 +563,7 @@ class ListWidget(urwid.Columns):
 
 
 class Controls(ViMotionListBox):
-    # TODO: Milestone
-    # TODO: Assigned to you, Created by you
+    # TODO: Milestone filter
     def __init__(self, repo, issues):
         self.repo = repo
         self.issues = issues
