@@ -1,6 +1,8 @@
 # shipit
 
-A (Work In Progress) interface to GitHub issues written in Python 3.
+A interface to GitHub issues written in Python 3.
+
+![](/screenshots/shipit.png)
 
 The goal of this project is to create a keyboard-driven console application
 that can be used to manage your issues and pull requests.
