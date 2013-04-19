@@ -137,8 +137,7 @@ class LabelsFilter(DataFilter):
     def filter(self, iterable):
         if not self.labels:
             # We needn't filter anything!
-            for i in iterable:
-                yield i
+            yield from iterable
             return
 
         for i in iterable:
