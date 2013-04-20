@@ -59,8 +59,10 @@ def main():
             # No github remotes were found
             exit(ERR_UNABLE_TO_FIND_REMOTE)
 
-        # Get the user and repo from the `origin` remote
-        remote = remotes.get('origin', None)
+        # Try an `upstream` remote first, and fall back to `origin` if it
+        # wasn't found.
+        remote = remotes.get("upstream", None) or remotes.get("origin", None)
+
         if remote is None:
             exit(ERR_ORIGIN_REMOTE_NOT_FOUND)
 
