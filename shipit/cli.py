@@ -61,7 +61,7 @@ def main():
 
         # Try an `upstream` remote first, and fall back to `origin` if it
         # wasn't found.
-        remote = remotes.get("upstream", None) or remotes.get("origin", None)
+        remote = remotes.get("upstream") or remotes.get("origin")
 
         if remote is None:
             exit(ERR_ORIGIN_REMOTE_NOT_FOUND)
