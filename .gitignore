@@ -1,1 +1,3 @@
 shipit.egg-info/
+build/
+dist/
