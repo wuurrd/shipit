@@ -1,5 +1,5 @@
-from argparse import ArgumentParser
 import sys
+from argparse import ArgumentParser
 
 from .ui import UI
 from .core import Shipit
@@ -49,29 +49,29 @@ def main():
     user = api.user()
 
     # Get the user and repository that we are we going to manage
-    user_repo_arg = args['user/repository'].strip()
+    user_repo_arg = args["user/repository"].strip()
 
     if not user_repo_arg:
         remotes = get_remotes()
 
         if remotes is None:
             # We aren't in a git repo
-            exit(ERR_NOT_IN_REPO)
+            sys.exit(ERR_NOT_IN_REPO)
         elif not remotes:
             # No github remotes were found
-            exit(ERR_UNABLE_TO_FIND_REMOTE)
+            sys.exit(ERR_UNABLE_TO_FIND_REMOTE)
 
         # Try an `upstream` remote first, and fall back to `origin` if it
         # wasn't found.
         remote = remotes.get("upstream") or remotes.get("origin")
 
         if remote is None:
-            exit(ERR_ORIGIN_REMOTE_NOT_FOUND)
+            sys.exit(ERR_ORIGIN_REMOTE_NOT_FOUND)
 
         USER, REPO = extract_user_and_repo_from_remote(remote)
-    elif '/' in user_repo_arg:
+    elif "/" in user_repo_arg:
         # Assume that we got a <username>/<repository>
-        USER, REPO = user_repo_arg.split('/')
+        USER, REPO = user_repo_arg.split("/")
     else:
         # If a `/` isn't included, assume that it's the name of the repository
         # and the logged in user owns it
@@ -83,10 +83,10 @@ def main():
         if repo.fork:
             repo = repo.parent
         else:
-            print('No issue tracker found.')
+            print("No issue tracker found.")
             sys.exit(ERR_NO_ISSUETRACKER)
 
-    print('Loading: {}'.format(repo.full_name))
+    print("Loading: {}".format(repo.full_name))
 
     # create view
     ui = UI(repo)
