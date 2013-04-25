@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+import sys
 
 from .ui import UI
 from .core import Shipit
@@ -9,6 +10,7 @@ from .git import get_remotes, extract_user_and_repo_from_remote
 ERR_NOT_IN_REPO = 1
 ERR_UNABLE_TO_FIND_REMOTE = 2
 ERR_ORIGIN_REMOTE_NOT_FOUND = 3
+ERR_NO_ISSUETRACKER = 4
 
 VERSION = "alpha"
 
@@ -77,6 +79,14 @@ def main():
 
     # fetch repo
     repo = api.repository(USER, REPO)
+    while not repo.has_issues:
+        if repo.fork:
+            repo = repo.parent
+        else:
+            print('No issue tracker found.')
+            sys.exit(ERR_NO_ISSUETRACKER)
+
+    print('Loading: {}'.format(repo.full_name))
 
     # create view
     ui = UI(repo)
