@@ -12,7 +12,7 @@ from setuptools import setup, find_packages
 from shipit import NAME, DESCRIPTION, VERSION
 
 REQUIREMENTS = [
-    "github3.py>=0.6.1",
+    "github3.py>=0.7",
     "urwid==1.1.1",
     "x256==0.0.2",
 ]
