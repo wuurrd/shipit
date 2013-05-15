@@ -39,17 +39,31 @@ COMMENT_RE = re.compile('<!--.*?-->', re.DOTALL)
 def strip_comments(text):
     return COMMENT_RE.sub('', text.strip())
 
+def indent(text, indentation='    '):
+    return indentation.join(['', text])
+
+def format_issue_thread(issue):
+    issue_thread = [format_issue_body(issue)]
+    issue_thread.extend(format_comment(comment) for comment in issue.iter_comments())
+
+    # Make the whole thread a comment
+    issue_thread.insert(0, '<!---\n')
+    issue_thread.append('-->')
+
+    return issue_thread
+
+def format_issue_body(issue):
+    return '\n\n'.join([issue.title, issue.body_text, ''])
 
 def format_comment(comment):
     author = str(comment.user)
     time = time_since(comment.created_at)
-    body = unlines(comment.body_text)
-    body = ['    '.join(['', line]) for line in body]
-    body = lines(body)
+
+    body = lines(indent(line) for line in unlines(comment.body_text))
+
     return "{author} commented {time}\n\n{body}\n".format(author=author,
                                                           time=time,
                                                           body=body,)
-
 
 def discard_args(func):
     def wrapper(*args, **kwargs):
@@ -257,12 +271,7 @@ class Shipit():
         item.edit(text)
 
     def comment_issue(self, issue, *, pull_request=False):
-        # Inline all the thread comments
-        issue_thread = [format_comment(comment) for comment in issue.iter_comments()]
-        issue_thread.insert(0,'\n\n'.join([issue.title, issue.body_text, '']))
-        # Make the whole thread a comment
-        issue_thread.insert(0, '<!---\n')
-        issue_thread.append('-->')
+        issue_thread = format_issue_thread(issue)
 
         comment_text = self.spawn_editor('\n'.join(issue_thread))
 
