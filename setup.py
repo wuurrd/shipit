@@ -35,6 +35,6 @@ setup(name=NAME,
           "Natural Language :: English",
           "Operating System :: POSIX :: Linux",
           "Operating System :: MacOS",
-          "Programming Language :: Python :: 3",
+          "Programming Language :: Python :: 3.3",
       ],
       install_requires=REQUIREMENTS,)
