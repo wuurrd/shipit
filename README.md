@@ -1,6 +1,6 @@
 # shipit
 
-A interface to GitHub issues written in Python 3.
+A interface to GitHub issues written in Python 3.3.
 
 ![](/screenshots/shipit.png)
 
