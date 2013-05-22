@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+
+"""
+shipit.config
+~~~~~~~~~~~~~
+
+Configuration a.k.a Global State™.
+"""
+
 KEY_OPEN_ISSUE = "O"
 KEY_CLOSE_ISSUE = "C"
 KEY_REOPEN_ISSUE = "R"

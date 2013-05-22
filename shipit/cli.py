@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+
+"""
+shipit.cli
+~~~~~~~~~~
+
+Starts the engines.
+"""
+
 import sys
 from argparse import ArgumentParser
 

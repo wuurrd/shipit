@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+
+"""
+shipit.auth
+~~~~~~~~~~~
+
+Authentication helpers.
+"""
+
 import os
 from getpass import getpass
 from configparser import ConfigParser

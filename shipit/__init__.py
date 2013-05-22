@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+
+"""
+shipit
+~~~~~~
+
+A curses interface to GitHub.
+"""
+
 __name__ = "shipit"
 __version__ = (0, 0)
 __description__ = "A curses interface to GitHub"

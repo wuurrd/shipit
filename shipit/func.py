@@ -1,6 +1,10 @@
+# -*- coding: utf-8 -*-
+
 """
 shipit.func
 ~~~~~~~~~~~
+
+Handy functions.
 """
 
 def unlines(text):

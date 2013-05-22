@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 
+"""
+shipit.core
+~~~~~~~~~~~
+
+Glues everything together.
+"""
+
 import re
 import os
 import subprocess

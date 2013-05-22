@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 
+"""
+shipit.ui
+~~~~~~~~~
+
+User interface elements.
+"""
+
 import time
 from calendar import timegm
 

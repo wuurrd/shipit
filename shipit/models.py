@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+
+"""
+shipit.models
+~~~~~~~~~~~~~
+
+Data structures that power `shipit`.
+"""
+
 import itertools
 from abc import ABCMeta, abstractmethod
 import concurrent.futures

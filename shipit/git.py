@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+
+"""
+shipit.git
+~~~~~~~~~~
+
+Operations on git repositories.
+"""
+
 import os
 import tempfile
 import subprocess
