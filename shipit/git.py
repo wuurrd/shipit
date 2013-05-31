@@ -24,6 +24,8 @@ def get_remotes():
     tmp_file = tempfile.NamedTemporaryFile(mode='w+', delete=False)
 
     retcode = subprocess.call(['git', 'remote', '-v'], stdout=tmp_file.file)
+    if retcode != 0:
+        return
 
     # Store the output of the command and delete temporary file
     tmp_file.file.seek(0)
@@ -31,22 +33,17 @@ def get_remotes():
     os.remove(tmp_file.name)
 
     # Get the GitHub remote strings
-    nonempty_remotes = [r for r in raw_remotes.split('\n') if 'github' in r]
+    nonempty_remotes = (r for r in raw_remotes.split('\n') if 'github' in r.lower())
 
-    # Process the raw remotes for returning a list of URLs
-    # Extract the url for each remote string
-    remotes = dict(remote_name_and_url(r) for r in nonempty_remotes)
-
-    return remotes if retcode == 0 else None
+    return {remote_name(r): remote_url(r)  for r in nonempty_remotes}
 
 
-def remote_name_and_url(remotestring):
-    """
-    Given a remote string from the output of the ``git remote -v`` command,
-    return a tuple of the name and URL of the remote.
-    """
-    name_url = remotestring.split(' ')[0]
-    return tuple(name_url.split('\t'))
+def remote_name(remotestring):
+    return remotestring.split(' ')[0].split('\t')[0]
+
+
+def remote_url(remotestring):
+    return remotestring.split(' ')[0].split('\t')[1]
 
 
 def extract_user_and_repo_from_remote(remote_url):
