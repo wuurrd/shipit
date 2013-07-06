@@ -67,6 +67,24 @@ def issue_title(issue):
     return urwid.Padding(text, left=0, right=3)
 
 
+def issue_number(issue):
+    return ("number", "#{}".format(issue.number))
+
+
+def pull_request_number(pr):
+    return [('green_text', '+'),
+            ('red_text', '-'),
+            ("number", "#{}".format(pr.number))]
+
+
+def issue_marker(issue):
+    return ('green_text', '☑') if issue.is_closed() else ('red_text', '☐')
+
+
+def pull_request_marker(pr):
+    return ('green_text', 'Y') if pr.is_merged() else ('red_text', 'o')
+
+
 def issue_comments(issue):
     if not issue.comments:
         return urwid.Text("")
@@ -405,8 +423,6 @@ class IssueListWidget(urwid.WidgetWrap):
     @classmethod
     def _build_widget(cls, issue):
         """Return a widget for the ``issue``."""
-        number = urwid.Text([("number", "#%s" % issue.number)])
-
         title = issue_title(issue)
         labels = cls._create_label_widgets(issue)
         title_labels = urwid.Columns([('weight', 0.7, title),
@@ -427,8 +443,9 @@ class IssueListWidget(urwid.WidgetWrap):
         if issue.comments:
             widget_list.append(issue_comments(issue))
 
+        number_and_marker = urwid.Text([issue_number(issue), 3 * ' ', issue_marker(issue)])
         pile = urwid.Pile(widget_list)
-        info = urwid.Columns([(5, number), pile])
+        info = urwid.Columns([(9, number_and_marker), pile])
 
         return box(info)
 
@@ -452,8 +469,6 @@ class PRListWidget(IssueListWidget):
     @classmethod
     def _build_widget(cls, pr):
         """Return a widget for the ``pr``."""
-        number = urwid.Text([("pull", "PR\n#%s" % pr.number)])
-
         title = pr_title(pr)
 
         author = pr_author(pr)
@@ -468,7 +483,11 @@ class PRListWidget(IssueListWidget):
             widget_list.append(comments)
 
         pile = urwid.Pile(widget_list)
-        widget = urwid.Columns([(5, number), pile])
+        number_and_marker = urwid.Text([pull_request_number(pr),
+                                        3 * ' ',
+                                        pull_request_marker(pr)])
+        widget = urwid.Columns([(12, number_and_marker), pile])
+
 
         return box(widget)
 
