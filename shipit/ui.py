@@ -219,9 +219,6 @@ def make_vertical_divider():
     return urwid.Padding(urwid.SolidFill(" "), left=1, right=1)
 
 
-def br():
-    return Legend("")
-
 
 class ViMotionListBox(urwid.ListBox):
     def __init__(self, *args, selectable=True):
@@ -608,14 +605,14 @@ class Controls(ViMotionListBox):
         # Assignation filters
         filters = []
         controls.extend([Legend("Show"),
-                         br(),
+                         br,
                          AllFilter(filters),
                          CreatedFilter(filters),
                          AssignedFilter(filters),
                          MentioningFilter(filters),])
         # Labels
         labels = LabelFiltersWidget(label for label in self.repo.iter_labels())
-        controls.extend([br(), labels])
+        controls.extend([br, labels])
 
         return controls
 
@@ -730,7 +727,7 @@ class LabelFiltersWidget(urwid.WidgetWrap):
     """
     def __init__(self, labels):
         # Legend
-        widgets = [Legend("Filter by label"), br()]
+        widgets = [Legend("Filter by label"), br]
         # Checkboxes
         self.label_widgets = [LabelWidget(label) for label in labels]
         widgets.extend(self.label_widgets)
@@ -985,3 +982,6 @@ class Diff(ViMotionListBox):
                 yield urwid.Text(("red_text", line))
             else:
                 yield urwid.Text(("code", line))
+
+
+br = Legend("")
