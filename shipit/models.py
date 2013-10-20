@@ -185,8 +185,7 @@ class AssignedToFilter(UserFilter):
 
 class MentioningFilter(UserFilter):
     def is_mentioned_in(self, issue):
-        # TODO: make it faster
-        username = "@%s " % str(self.user)
+        username = "@{} ".format(self.user)
 
         if username in issue.body_text:
             return True
