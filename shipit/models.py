@@ -123,9 +123,9 @@ class PullRequestSource(DataSource):
         self.bootstrapped = False
 
     def update(self):
-        pulls = self.repo.iter_pulls()
-        for p in pulls:
-            setattr(p, 'issue', self.repo.issue(p.number))
+        for num in (p.number for p in self.repo.iter_pulls()):
+            p = self.repo.pull_request(num)
+            setattr(p, 'issue', self.repo.issue(num))
             if p not in self.pulls:
                 self.pulls.append(p)
 
