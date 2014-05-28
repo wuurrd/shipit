@@ -221,13 +221,13 @@ def make_vertical_divider():
 
 
 class ViMotionListBox(urwid.ListBox):
-    def __init__(self, *args, selectable=True):
-        super().__init__(*args)
+    def __init__(self, arg, selectable=True):
+        super(ViMotionListBox, self).__init__(arg)
         self._selectable = selectable
 
     def keypress(self, size, key):
         key = VI_KEYS.get(key, key)
-        return super().keypress(size, key)
+        return super(ViMotionListBox, self).keypress(size, key)
 
     def selectable(self):
         return self._selectable
@@ -236,7 +236,7 @@ class ViMotionListBox(urwid.ListBox):
 class Header(urwid.WidgetWrap):
     def __init__(self, repo):
         self.repo = repo
-        super().__init__(urwid.Text("shipit"))
+        super(Header, self).__init__(urwid.Text("shipit"))
 
     @staticmethod
     def _make_text(text):
@@ -271,7 +271,7 @@ class Header(urwid.WidgetWrap):
 
 class Footer(urwid.WidgetWrap):
     def __init__(self):
-        super().__init__(urwid.Text(""))
+        super(Footer, self).__init__(urwid.Text(""))
 
     def issue_list(self):
         self._w = self._build_widget(ISSUE_LIST_KEYS)
@@ -312,11 +312,11 @@ class UI(urwid.WidgetWrap):
         # footer
         self.frame = urwid.Frame(body, header=header, footer=footer)
 
-        super().__init__(self.frame)
+        super(UI, self).__init__(self.frame)
 
     # -- API ------------------------------------------------------------------
 
-    def get_focused_item(self, *, parent_over_comment=False):
+    def get_focused_item(self, parent_over_comment=False, *args):
         """
         Return the currently focused item when a Issue or Pull Request is
         focused.
@@ -415,7 +415,7 @@ class IssueListWidget(urwid.WidgetWrap):
 
         widget = self._build_widget(issue)
 
-        super().__init__(widget)
+        super(IssueListWidget, self).__init__(widget)
 
     @classmethod
     def _build_widget(cls, issue):
@@ -573,9 +573,10 @@ class ListWidget(urwid.Columns):
         vertical_divider = make_vertical_divider()
         self.controls = Controls(repo, items)
 
-        super().__init__([('weight', 0.8, self.issues),
-                          (3, vertical_divider),
-                          ('weight', 0.2, self.controls),])
+        super(ListWidget, self).__init__(
+            [('weight', 0.8, self.issues),
+             (3, vertical_divider),
+             ('weight', 0.2, self.controls),])
 
     def reset_list(self, items):
         widgets = [w for w in issue_list(items)]
@@ -592,7 +593,7 @@ class Controls(ViMotionListBox):
 
         widgets = self._build_widgets()
 
-        super().__init__(urwid.SimpleListWalker(widgets))
+        super(Controls, self).__init__(urwid.SimpleListWalker(widgets))
 
     def _build_widgets(self):
         controls = []
@@ -622,7 +623,7 @@ class Controls(ViMotionListBox):
 
 class Legend(urwid.Text):
     def __init__(self, text):
-        super().__init__(("legend", text))
+        super(Legend, self).__init__(("legend", text))
 
     def selectable(self):
         return False
@@ -636,7 +637,7 @@ class RadioButtonWrap(urwid.WidgetWrap):
 
         urwid.connect_signal(widget, "change", self.on_change)
 
-        super().__init__(urwid.AttrWrap(widget, "default", "focus"))
+        super(RadioButtonWrap, self).__init__(urwid.AttrWrap(widget, "default", "focus"))
 
 
     def on_change(self, checkbox, new_state):
@@ -649,7 +650,7 @@ class RadioButtonWrap(urwid.WidgetWrap):
 
 class AllFilter(RadioButtonWrap):
     def __init__(self, filters):
-        super().__init__(filters, "All")
+        super(AllFilter, self).__init__(filters, "All")
 
     def on_check(self):
         trigger("show_all")
@@ -657,7 +658,7 @@ class AllFilter(RadioButtonWrap):
 
 class CreatedFilter(RadioButtonWrap):
     def __init__(self, filters):
-        super().__init__(filters, "Created by you")
+        super(CreatedFilter, self).__init__(filters, "Created by you")
 
     def on_check(self):
         trigger("show_created_by_you")
@@ -665,7 +666,7 @@ class CreatedFilter(RadioButtonWrap):
 
 class AssignedFilter(RadioButtonWrap):
     def __init__(self, filters):
-        super().__init__(filters, "Assigned to you")
+        super(AssignedFilter, self).__init__(filters, "Assigned to you")
 
     def on_check(self):
         trigger("show_assigned_to_you")
@@ -673,7 +674,7 @@ class AssignedFilter(RadioButtonWrap):
 
 class MentioningFilter(RadioButtonWrap):
     def __init__(self, filters):
-        super().__init__(filters, "Mentioning you")
+        super(MentioningFilter, self).__init__(filters, "Mentioning you")
 
     def on_check(self):
         trigger("show_mentioning_you")
@@ -681,7 +682,7 @@ class MentioningFilter(RadioButtonWrap):
 
 class OpenIssuesFilter(RadioButtonWrap):
     def __init__(self, filters):
-        super().__init__(filters, "Open")
+        super(OpenIssuesFilter, self).__init__(filters, "Open")
 
     def on_check(self):
         trigger("show_open_issues")
@@ -689,7 +690,7 @@ class OpenIssuesFilter(RadioButtonWrap):
 
 class ClosedIssuesFilter(RadioButtonWrap):
     def __init__(self, filters):
-        super().__init__(filters, "Closed")
+        super(ClosedIssuesFilter, self).__init__(filters, "Closed")
 
     def on_check(self):
         trigger("show_closed_issues")
@@ -697,7 +698,7 @@ class ClosedIssuesFilter(RadioButtonWrap):
 
 class PullRequestsFilter(RadioButtonWrap):
     def __init__(self, filters):
-        super().__init__(filters, "Pull Requests")
+        super(PullRequestsFilter, self).__init__(filters, "Pull Requests")
 
     def on_check(self):
         trigger("show_pull_requests")
@@ -713,7 +714,7 @@ class LabelWidget(urwid.WidgetWrap):
         label_widget = create_label_widget(label)
         widget = urwid.Columns([(5, checkbox), label_widget])
 
-        super().__init__(widget)
+        super(LabelWidget, self).__init__(widget)
 
 
 class LabelFiltersWidget(urwid.WidgetWrap):
@@ -736,7 +737,7 @@ class LabelFiltersWidget(urwid.WidgetWrap):
         for w in self.label_widgets:
             urwid.connect_signal(w.checkbox, 'change', self.on_change, w.label)
 
-        super().__init__(widget)
+        super(LabelFiltersWidget, self).__init__(widget)
 
     def on_change(self, checkbox, new_state, label):
         # Have to use ``id`` here since Checkbox widgets don't implement __eq__
@@ -781,7 +782,7 @@ class IssueDetailWidget(urwid.WidgetWrap):
     def __init__(self, issue):
         self.issue = issue
         widget = self._build_widget(issue)
-        super().__init__(widget)
+        super(IssueDetailWidget, self).__init__(widget)
 
     @classmethod
     def _build_widget(cls, issue):
@@ -837,7 +838,7 @@ class IssueCommentWidget(urwid.WidgetWrap):
 
         widget = self._build_widget(comment)
 
-        super().__init__(widget)
+        super(IssueCommentWidget, self).__init__(widget)
 
     @classmethod
     def _build_widget(cls, comment):
@@ -902,7 +903,7 @@ class PRDetailWidget(urwid.WidgetWrap):
     def __init__(self, pr):
         self.pr = pr
         widget = self._build_widget(pr)
-        super().__init__(widget)
+        super(PRDetailWidget, self).__init__(widget)
 
     @classmethod
     def _build_widget(cls, pr):
@@ -953,15 +954,16 @@ class PRCommentWidget(IssueCommentWidget):
     def __init__(self, pr, comment):
         self.pr = pr
 
-        super().__init__(pr.issue, comment)
+        super(PRCommentWidget, self).__init__(pr.issue, comment)
 
 
 class Diff(ViMotionListBox):
     def __init__(self, pr):
         self.pr = pr
         self.diff = pr_diff(pr)
-        super().__init__(urwid.SimpleListWalker([l for l in
-                                                 self._build_lines(self.diff)]))
+        super(Diff, self).__init__(
+            urwid.SimpleListWalker(
+                [l for l in self._build_lines(self.diff)]))
 
     @staticmethod
     def _build_lines(diff):

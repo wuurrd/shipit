@@ -9,7 +9,7 @@ Authentication helpers.
 
 import os
 from getpass import getpass
-from configparser import ConfigParser
+from ConfigParser import ConfigParser
 
 from github3 import authorize
 from github3 import login as github_login
@@ -35,8 +35,8 @@ def login():
     else:
         # Ask for credentials
         print("Please insert your GitHub credentials below:")
-        user = input("Username: ").strip()
-        password = getpass()
+        user = raw_input("Username: ").strip()
+        password = getpass().strip()
 
         auth = authorize(user, password, SCOPES, DESCRIPTION)
         token = auth.token

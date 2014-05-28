@@ -11,7 +11,6 @@ import re
 import os
 import subprocess
 import tempfile
-import concurrent.futures
 import webbrowser
 from functools import partial
 
@@ -153,7 +152,8 @@ class Shipit():
                     return
 
                 contents = unlines(issue_text)
-                title, *body = contents
+                title = contents[0]
+                body = contents[1:]
 
                 if not title:
                     # TODO: incorrect input, at least a title is needed
@@ -248,7 +248,8 @@ class Shipit():
             return
 
         contents = unlines(issue_text)
-        title, *body = contents
+        title = contents[0]
+        body = contents[1:]
 
         if not title:
             # TODO: incorrect input, at least a title is needed
@@ -277,7 +278,7 @@ class Shipit():
         # TODO: ui must be updated!
         item.edit(text)
 
-    def comment_issue(self, issue, *, pull_request=False):
+    def comment_issue(self, issue, pull_request=False):
         issue_thread = format_issue_thread(issue)
 
         comment_text = self.spawn_editor('\n'.join(issue_thread))

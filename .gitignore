@@ -1,3 +1,4 @@
 shipit.egg-info/
 build/
 dist/
+*.pyc

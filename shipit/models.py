@@ -9,7 +9,6 @@ Data structures that power `shipit`.
 
 import itertools
 from abc import ABCMeta, abstractmethod
-import concurrent.futures
 
 from urwid import MonitoredList
 import github3.issues as issues
@@ -47,8 +46,10 @@ def is_comment(item):
     return isinstance(item, (issues.comment.IssueComment, pulls.ReviewComment))
 
 
-class DataSource(metaclass=ABCMeta):
+class DataSource(object):
     """A source of data with the notion of updates."""
+    __metaclass__ = ABCMeta
+
     @abstractmethod
     def update(self):
         pass
@@ -58,10 +59,12 @@ class DataSource(metaclass=ABCMeta):
         pass
 
 
-class DataFilter(metaclass=ABCMeta):
+class DataFilter(object):
     """
     A class that represents a filter over an iterable. Filters can be composed.
     """
+    __metaclass__ = ABCMeta
+
     @abstractmethod
     def filter(self, iterable):
         pass
@@ -146,8 +149,9 @@ class LabelsFilter(DataFilter):
     def filter(self, iterable):
         if not self.labels:
             # We needn't filter anything!
-            yield from iterable
-            return
+            for i in iterable:
+                yield i
+            raise StopIteration()
 
         for i in iterable:
             issue = extract_issue(i)
